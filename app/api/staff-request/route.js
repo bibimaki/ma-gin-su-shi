@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabase } from "@/lib/supabase";
 import { sendTelegramMessage } from "@/lib/telegram";
 
 export async function POST(request) {
@@ -30,17 +31,21 @@ export async function POST(request) {
     if (existingError) throw existingError;
     if (existing) return NextResponse.json({ request: existing, reused: true });
 
-    const { data: staffRequest, error: insertError } = await supabaseAdmin
-      .from("staff_requests")
-      .insert({ session_id: session.id, type, status: "pending" })
-      .select("id, type, status, created_at")
-      .single();
+    // Insert through a SECURITY DEFINER RPC that validates the QR session token.
+    // This keeps RLS enabled and avoids exposing a broad staff_requests INSERT policy.
+    const { data: staffRequest, error: insertError } = await supabase.rpc(
+      "create_staff_request",
+      { p_token: token, p_type: type }
+    );
     if (insertError) throw insertError;
+
+    const requestRow = Array.isArray(staffRequest) ? staffRequest[0] : staffRequest;
+    if (!requestRow) throw new Error("ไม่สามารถสร้างคำขอได้");
 
     const title = type === "bill" ? "💳 ลูกค้าต้องการเรียกเก็บเงิน" : "🔔 ลูกค้าเรียกพนักงาน";
     await sendTelegramMessage(`${title}\n\n🪑 โต๊ะ: ${session.table_number}\n🕐 ${new Date().toLocaleString("th-TH")}`);
 
-    return NextResponse.json({ request: staffRequest, reused: false });
+    return NextResponse.json({ request: requestRow, reused: false });
   } catch (error) {
     console.error("Staff request error:", error);
     return NextResponse.json({ message: error.message || "ไม่สามารถส่งคำขอได้" }, { status: 500 });
