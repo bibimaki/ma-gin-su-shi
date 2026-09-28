@@ -86,6 +86,7 @@ export default function OrderPage() {
       <div className="customer-meta"><div className="table-pill">โต๊ะ {tableNumber}</div><div className="customer-people">ผู้ใหญ่ {session.adult_count ?? 1} • เด็ก {session.child_count ?? 0}</div></div>
     </header>
     <div className="customer-welcome"><div><div className="eyebrow">MENU • ORDER FROM YOUR TABLE</div><h1>เลือกเมนูที่ต้องการ</h1><p className="muted">กด + เพื่อเพิ่มจำนวน หรือกด − เพื่อลดจำนวน</p></div><div className="menu-count"><SectionIcon type="menu" /> {menuItems.length} เมนู</div></div>
+    <div className="order-service-link-wrap"><a href={`/customer/${encodeURIComponent(tableNumber)}`} className="order-service-link">🔔 ดูออเดอร์ / เรียกพนักงาน / เรียกเก็บเงิน</a></div>
     {categories.map((category) => {
       const items = menuItems.filter((item) => item.category_id === category.id);
       if (!items.length) return null;

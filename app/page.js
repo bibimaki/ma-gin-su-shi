@@ -212,6 +212,19 @@ export default function HomePage() {
         </Link>
 
 
+
+        {/* บริการลูกค้า */}
+        <Link
+          href="/customer/20"
+          className="feature-card feature-green"
+        >
+          <div className="feature-icon">🔔</div>
+          <div>
+            <h2>บริการลูกค้า</h2>
+            <p>ดูสถานะออเดอร์ เรียกพนักงาน และเรียกเก็บเงินจากโต๊ะ</p>
+          </div>
+        </Link>
+
       </section>
 
     </main>

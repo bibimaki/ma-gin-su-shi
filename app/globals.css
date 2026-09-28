@@ -279,3 +279,9 @@
 .bill-button{background:#d94343;color:#fff}
 .customer-security-note{margin-top:18px;text-align:center;font-size:13px}
 @media(max-width:600px){.customer-actions{grid-template-columns:1fr}}
+
+
+/* Customer service UI */
+.feature-green .feature-icon { background: #e9f8ef; }
+.order-service-link-wrap { margin: 14px 0 8px; }
+.order-service-link { display: inline-flex; align-items: center; padding: 10px 14px; border: 1px solid #d8e5dc; border-radius: 12px; background: #f4fbf6; color: #176b3a; text-decoration: none; font-weight: 700; font-size: 13px; }
