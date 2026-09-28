@@ -21,3 +21,7 @@ Next.js เสิร์ฟไฟล์ static จาก `public` โดยอ้
 4. Environment Variables ของ Supabase ใน Vercel ใช้ค่าของเดิมได้
 
 > ไม่ได้รวม `.env.local` และ secret keys ใน ZIP
+
+
+## Staff Customer Service
+Open `/customer-service` for a staff-only page showing tables 1-30. Staff can call service or request bill for any open table. Access uses `STAFF_ACCESS_KEY` in a secure HttpOnly cookie.

@@ -15,6 +15,8 @@ export default function OrderPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [callingStaff, setCallingStaff] = useState(false);
+  const [staffCalled, setStaffCalled] = useState(false);
 
   useEffect(() => { enterAndLoad(); }, [tableNumber]);
 
@@ -57,6 +59,27 @@ export default function OrderPage() {
   const total = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
   const itemCount = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
 
+  async function callStaff() {
+    if (callingStaff || staffCalled) return;
+    setCallingStaff(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/staff-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "staff" }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "เรียกพนักงานไม่สำเร็จ");
+      setStaffCalled(true);
+      setMessage("🔔 เรียกพนักงานแล้ว กรุณารอสักครู่");
+    } catch (error) {
+      setMessage(error.message || "เรียกพนักงานไม่สำเร็จ");
+    } finally {
+      setCallingStaff(false);
+    }
+  }
+
   async function submitOrder() {
     if (!session) return setMessage("ไม่พบ Session ของโต๊ะนี้");
     if (!cart.length) return setMessage("กรุณาเลือกอาหาร");
@@ -86,7 +109,12 @@ export default function OrderPage() {
       <div className="customer-meta"><div className="table-pill">โต๊ะ {tableNumber}</div><div className="customer-people">ผู้ใหญ่ {session.adult_count ?? 1} • เด็ก {session.child_count ?? 0}</div></div>
     </header>
     <div className="customer-welcome"><div><div className="eyebrow">MENU • ORDER FROM YOUR TABLE</div><h1>เลือกเมนูที่ต้องการ</h1><p className="muted">กด + เพื่อเพิ่มจำนวน หรือกด − เพื่อลดจำนวน</p></div><div className="menu-count"><SectionIcon type="menu" /> {menuItems.length} เมนู</div></div>
-    <div className="order-service-link-wrap"><a href={`/customer/${encodeURIComponent(tableNumber)}`} className="order-service-link">🔔 ดูออเดอร์ / เรียกพนักงาน / เรียกเก็บเงิน</a></div>
+    <div className="customer-quick-actions">
+      <button className={`quick-staff-button ${staffCalled ? "called" : ""}`} onClick={callStaff} disabled={callingStaff || staffCalled}>
+        {callingStaff ? "กำลังเรียกพนักงาน..." : staffCalled ? "✓ เรียกพนักงานแล้ว" : "🔔 เรียกพนักงาน"}
+      </button>
+      <a href={`/customer/${encodeURIComponent(tableNumber)}`} className="order-service-link">📋 ดูออเดอร์ / เรียกเก็บเงิน</a>
+    </div>
     {categories.map((category) => {
       const items = menuItems.filter((item) => item.category_id === category.id);
       if (!items.length) return null;

@@ -138,7 +138,7 @@ export default function HomePage() {
           <h2>ลูกค้าสามารถเรียกพนักงานและเรียกเก็บเงินผ่านระบบได้</h2>
           <p>ระบบจะบันทึกคำขอของโต๊ะ และสามารถส่งแจ้งเตือนไปยัง Telegram ของพนักงาน</p>
         </div>
-        <Link href="/customer/20" className="service-banner-button">ทดลองระบบโต๊ะ 20 →</Link>
+        <Link href="/customer-service" className="service-banner-button">ทดลองระบบโต๊ะ 20 →</Link>
       </section>
 
       <section className="feature-grid">
@@ -225,7 +225,7 @@ export default function HomePage() {
 
         {/* บริการลูกค้า */}
         <Link
-          href="/customer/20"
+          href="/customer-service"
           className="feature-card feature-green feature-service"
         >
           <div className="feature-icon">🔔</div>
