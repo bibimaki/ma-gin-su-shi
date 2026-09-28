@@ -131,6 +131,16 @@ export default function HomePage() {
       {/* =========================================
           FEATURE CARDS
       ========================================= */}
+      <section className="service-banner">
+        <div className="service-banner-icon">🔔</div>
+        <div>
+          <div className="service-banner-label">CUSTOMER SERVICE • NEW</div>
+          <h2>ลูกค้าสามารถเรียกพนักงานและเรียกเก็บเงินผ่านระบบได้</h2>
+          <p>ระบบจะบันทึกคำขอของโต๊ะ และสามารถส่งแจ้งเตือนไปยัง Telegram ของพนักงาน</p>
+        </div>
+        <Link href="/customer/20" className="service-banner-button">ทดลองระบบโต๊ะ 20 →</Link>
+      </section>
+
       <section className="feature-grid">
 
 
@@ -216,12 +226,13 @@ export default function HomePage() {
         {/* บริการลูกค้า */}
         <Link
           href="/customer/20"
-          className="feature-card feature-green"
+          className="feature-card feature-green feature-service"
         >
           <div className="feature-icon">🔔</div>
           <div>
+            <div className="feature-badge">NEW</div>
             <h2>บริการลูกค้า</h2>
-            <p>ดูสถานะออเดอร์ เรียกพนักงาน และเรียกเก็บเงินจากโต๊ะ</p>
+            <p>ดูสถานะออเดอร์ • เรียกพนักงาน • เรียกเก็บเงิน</p>
           </div>
         </Link>
 
