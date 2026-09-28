@@ -29,23 +29,61 @@ export async function POST(request) {
       .eq("status", "pending")
       .maybeSingle();
     if (existingError) throw existingError;
-    if (existing) return NextResponse.json({ request: existing, reused: true });
 
-    // Insert through a SECURITY DEFINER RPC that validates the QR session token.
-    // This keeps RLS enabled and avoids exposing a broad staff_requests INSERT policy.
-    const { data: staffRequest, error: insertError } = await supabase.rpc(
-      "create_staff_request",
-      { p_token: token, p_type: type }
-    );
-    if (insertError) throw insertError;
+    // สำหรับการเรียกเก็บเงิน ให้คำนวณยอดจากออเดอร์จริงบน server
+    // และปิด session ของโต๊ะทันทีหลังสร้างคำขอสำเร็จ
+    let billing = null;
+    if (type === "bill") {
+      const { data: orders, error: ordersError } = await supabaseAdmin
+        .from("orders")
+        .select("total")
+        .eq("session_id", session.id);
+      if (ordersError) throw ordersError;
 
-    const requestRow = Array.isArray(staffRequest) ? staffRequest[0] : staffRequest;
-    if (!requestRow) throw new Error("ไม่สามารถสร้างคำขอได้");
+      const subtotal = (orders || []).reduce((sum, order) => sum + Number(order.total || 0), 0);
+      const vat = Math.round(subtotal * 0.07 * 100) / 100;
+      const grandTotal = Math.round((subtotal + vat) * 100) / 100;
+      billing = { subtotal, vat, grandTotal };
+    }
+
+    let requestRow = existing;
+    let reused = Boolean(existing);
+
+    if (!requestRow) {
+      // Insert through a SECURITY DEFINER RPC that validates the QR session token.
+      const { data: staffRequest, error: insertError } = await supabase.rpc(
+        "create_staff_request",
+        { p_token: token, p_type: type }
+      );
+      if (insertError) throw insertError;
+
+      requestRow = Array.isArray(staffRequest) ? staffRequest[0] : staffRequest;
+      if (!requestRow) throw new Error("ไม่สามารถสร้างคำขอได้");
+      reused = false;
+    }
+
+    if (type === "bill") {
+      const { error: closeError } = await supabaseAdmin
+        .from("sessions")
+        .update({ status: "closed", closed_at: new Date().toISOString() })
+        .eq("id", session.id)
+        .eq("status", "open");
+      if (closeError) throw closeError;
+    }
 
     const title = type === "bill" ? "💳 ลูกค้าต้องการเรียกเก็บเงิน" : "🔔 ลูกค้าเรียกพนักงาน";
-    await sendTelegramMessage(`${title}\n\n🪑 โต๊ะ: ${session.table_number}\n🕐 ${new Date().toLocaleString("th-TH")}`);
+    const billText = billing
+      ? `\n\n🧾 ยอดก่อน VAT: ${billing.subtotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท\nVAT 7%: ${billing.vat.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท\n💰 ยอดสุทธิ: ${billing.grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`
+      : "";
+    await sendTelegramMessage(`${title}\n\n🪑 โต๊ะ: ${session.table_number}${billText}\n🕐 ${new Date().toLocaleString("th-TH")}`);
 
-    return NextResponse.json({ request: requestRow, reused: false });
+    return NextResponse.json({
+      request: requestRow,
+      reused,
+      closed: type === "bill",
+      billing,
+      message: type === "bill" ? "พนักงานกำลังมา กรุณารอสักครู่" : "เรียกพนักงานแล้ว กรุณารอสักครู่",
+    });
   } catch (error) {
     console.error("Staff request error:", error);
     return NextResponse.json({ message: error.message || "ไม่สามารถส่งคำขอได้" }, { status: 500 });

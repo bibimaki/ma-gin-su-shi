@@ -17,6 +17,8 @@ export default function CustomerPage() {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState("");
+  const [billClosed, setBillClosed] = useState(false);
+  const [billSummary, setBillSummary] = useState(null);
 
   async function loadCustomer() {
     try {
@@ -45,8 +47,14 @@ export default function CustomerPage() {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "ส่งคำขอไม่ได้");
-      setMessage(type === "bill" ? "ส่งคำขอเรียกเก็บเงินแล้ว" : "เรียกพนักงานแล้ว");
-      await loadCustomer();
+      if (type === "bill") {
+        setBillClosed(true);
+        setBillSummary(result.billing || null);
+        setMessage("พนักงานกำลังมา");
+      } else {
+        setMessage("เรียกพนักงานแล้ว กรุณารอสักครู่");
+        await loadCustomer();
+      }
     } catch (e) { setMessage(e.message || "เกิดข้อผิดพลาด"); }
     finally { setRequesting(""); }
   }
@@ -54,7 +62,9 @@ export default function CustomerPage() {
   if (loading) return <main className="container loading-page"><p>กำลังโหลดออเดอร์...</p></main>;
   if (!data) return <main className="container"><div className="card error-panel"><h1>โต๊ะ {tableNumber}</h1><p className="error">{message || "ไม่พบ Session"}</p></div></main>;
 
-  const total = (data.orders || []).reduce((sum, o) => sum + Number(o.total), 0);
+  const subtotal = (data.orders || []).reduce((sum, o) => sum + Number(o.total), 0);
+  const vat = Math.round(subtotal * 0.07 * 100) / 100;
+  const total = Math.round((subtotal + vat) * 100) / 100;
   const staffPending = data.requests?.some((r) => r.type === "staff");
   const billPending = data.requests?.some((r) => r.type === "bill");
 
@@ -72,13 +82,20 @@ export default function CustomerPage() {
             {order.items.map((item, i) => <div className="customer-item" key={i}><span>{item.name} × {item.quantity}</span><span>{(Number(item.price)*Number(item.quantity)).toLocaleString()} บาท</span></div>)}
           </div>;
         })}
-        <div className="customer-total"><span>รวมทั้งหมด</span><strong>{total.toLocaleString()} บาท</strong></div>
+        <div className="customer-bill-summary">
+          <div><span>ยอดอาหาร</span><strong>{subtotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท</strong></div>
+          <div><span>VAT 7%</span><strong>{vat.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท</strong></div>
+          <div className="customer-grand-total"><span>ยอดสุทธิ</span><strong>{total.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท</strong></div>
+        </div>
       </section>
-      <section className="customer-actions">
+      {!billClosed ? <section className="customer-actions">
         <button className="staff-button" disabled={!!requesting || staffPending} onClick={() => requestStaff("staff")}>{requesting === "staff" ? "กำลังส่ง..." : staffPending ? "✓ เรียกพนักงานแล้ว" : "🔔 เรียกพนักงาน"}</button>
         <button className="bill-button" disabled={!!requesting || billPending} onClick={() => requestStaff("bill")}>{requesting === "bill" ? "กำลังส่ง..." : billPending ? "✓ เรียกเก็บเงินแล้ว" : "💳 เรียกเก็บเงิน"}</button>
-      </section>
-      {message && <p className="notice info">{message}</p>}
+      </section> : <section className="bill-closed-success">
+        <div className="bill-success-icon">✓</div>
+        <div><div className="eyebrow">SUCCESS</div><h2>พนักงานกำลังมา</h2><p>โต๊ะ {data.session.table_number} ปิดเรียบร้อยแล้ว</p>{billSummary && <strong>ยอดสุทธิ {billSummary.grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท</strong>}</div>
+      </section>}
+      {message && <p className="notice success">{message === "พนักงานกำลังมา" ? "✓ พนักงานกำลังมา กรุณารอสักครู่" : message}</p>}
       <p className="muted customer-security-note">🔐 Session นี้ผูกกับโต๊ะจาก QR ไม่สามารถเลือกดูออเดอร์ของโต๊ะอื่นได้</p>
     </main>
   );
